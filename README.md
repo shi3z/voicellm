@@ -31,7 +31,7 @@ Voice Input → sherpa-onnx → Python API → LMStudio → Voice Synthesis
 
 1. Clone the repository
 ```bash
-git clone <repository-url>
+git clone https://github.com/shi3z/voicellm
 cd voiceui
 ```
 
