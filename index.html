@@ -18,7 +18,10 @@
 </head>
 
 <body style="font-family: 'Source Sans Pro', sans-serif; background-color: #f9fafb; color: #333; display: flex; flex-direction: column; align-items: center; height: 100vh; margin: 0;">
-  <h1>Local LLM音声応答システム</h1>
+  <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 900px; margin-bottom: 1rem;">
+    <h1 id="main-title">VoiceLLM</h1>
+    <button id="langToggle" style="padding: 0.5rem 1rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">🌐 EN</button>
+  </div>
 
   <div style="width: 100%; max-width: 900px; background: #fff; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); flex: 1;">
     <div id="status">Loading...</div>
@@ -191,10 +194,154 @@
       }
     }
 
+    // 翻訳辞書
+    const translations = {
+      ja: {
+        'main-title': 'VoiceLLM',
+        'startBtn': '🎤 音声認識開始',
+        'stopBtn': '⏹ 停止',
+        'clearBtn': 'クリア',
+        'speakBtn': '🔊 音声応答',
+        'sendBtn': '📤 送信',
+        'clearConversationBtn': '会話履歴クリア',
+        'textInput-placeholder': 'メッセージを入力してEnterキーまたは送信ボタンを押してください...',
+        'settings-title': '⚙️ LMStudio設定',
+        'model-label': 'モデル:',
+        'model-loading': 'モデルを読み込み中...',
+        'tokens-label': '最大推奨トークン数:',
+        'system-prompt-label': 'システムプロンプト:',
+        'system-prompt-placeholder': 'AIの動作を指定するプロンプトを入力してください...',
+        'system-prompt-default': 'あなたは親しみやすい日本語のアシスタントです。簡潔で自然な日本語で応答してください。英語は一切使わないでください',
+        'tools-label': 'ツール使用を有効化 (JavaScript/Python実行)',
+        'save-config': '💾 設定保存',
+        'refresh-models': '🔄',
+        'ai-thinking': 'AIに問い合わせ中...',
+        'speech-init': '音声合成を初期化しています...',
+        'speech-ready': '音声認識を開始してください',
+        'speech-synth-init': '音声合成の初期化中...',
+        'recognizing': '🎤 認識中...',
+        'browser-speech-not-supported': 'このブラウザは音声認識をサポートしていません。テキスト入力をご利用ください。',
+        'webassembly-fallback': 'WebAssembly音声認識が利用できません。ブラウザ音声認識を使用します。'
+      },
+      en: {
+        'main-title': 'VoiceLLM',
+        'startBtn': '🎤 Start Recognition',
+        'stopBtn': '⏹ Stop',
+        'clearBtn': 'Clear',
+        'speakBtn': '🔊 Speak',
+        'sendBtn': '📤 Send',
+        'clearConversationBtn': 'Clear History',
+        'textInput-placeholder': 'Enter message and press Enter or Send button...',
+        'settings-title': '⚙️ LMStudio Settings',
+        'model-label': 'Model:',
+        'model-loading': 'Loading models...',
+        'tokens-label': 'Max Recommended Tokens:',
+        'system-prompt-label': 'System Prompt:',
+        'system-prompt-placeholder': 'Enter system prompt to specify AI behavior...',
+        'system-prompt-default': 'You are a friendly assistant. Please respond concisely and naturally.',
+        'tools-label': 'Enable Tools (JavaScript/Python execution)',
+        'save-config': '💾 Save Config',
+        'refresh-models': '🔄',
+        'ai-thinking': 'Querying AI...',
+        'speech-init': 'Initializing speech synthesis...',
+        'speech-ready': 'Please start voice recognition',
+        'speech-synth-init': 'Initializing speech synthesis...',
+        'recognizing': '🎤 Recognizing...',
+        'browser-speech-not-supported': 'This browser does not support speech recognition. Please use text input.',
+        'webassembly-fallback': 'WebAssembly speech recognition not available. Using browser speech recognition.'
+      }
+    };
+
+    // 現在の言語（デフォルトは日本語）
+    let currentLang = localStorage.getItem('voiceui_language') || 'ja';
+
+    // UI言語を更新する関数
+    function updateUILanguage() {
+      const t = translations[currentLang];
+      
+      // テキスト要素を更新
+      const elements = [
+        'main-title', 'startBtn', 'stopBtn', 'clearBtn', 'speakBtn', 
+        'sendBtn', 'clearConversationBtn', 'save-config'
+      ];
+      
+      elements.forEach(id => {
+        const element = document.getElementById(id);
+        if (element && t[id]) {
+          element.textContent = t[id];
+        }
+      });
+
+      // プレースホルダーを更新
+      const textInput = document.getElementById('textInput');
+      if (textInput && t['textInput-placeholder']) {
+        textInput.placeholder = t['textInput-placeholder'];
+      }
+
+      // 設定パネルのラベルを更新
+      const settingsTitle = document.querySelector('#settingsHeader h3');
+      if (settingsTitle && t['settings-title']) {
+        settingsTitle.textContent = t['settings-title'];
+      }
+
+      // その他のラベル要素を更新
+      const modelLabel = document.querySelector('label[for="modelSelect"]');
+      if (modelLabel && t['model-label']) {
+        modelLabel.textContent = t['model-label'];
+      }
+
+      const tokensLabel = document.querySelector('label[for="maxTokensSlider"]');
+      if (tokensLabel && t['tokens-label']) {
+        tokensLabel.textContent = t['tokens-label'];
+      }
+
+      const systemPromptLabel = document.querySelector('label[for="systemPrompt"]');
+      if (systemPromptLabel && t['system-prompt-label']) {
+        systemPromptLabel.textContent = t['system-prompt-label'];
+      }
+
+      const systemPrompt = document.getElementById('systemPrompt');
+      if (systemPrompt) {
+        if (t['system-prompt-placeholder']) {
+          systemPrompt.placeholder = t['system-prompt-placeholder'];
+        }
+        // デフォルト値も更新（既存の値が空の場合）
+        if (!systemPrompt.value.trim() || systemPrompt.value === translations.ja['system-prompt-default'] || systemPrompt.value === translations.en['system-prompt-default']) {
+          systemPrompt.value = t['system-prompt-default'];
+        }
+      }
+
+      const toolsLabel = document.querySelector('label[for="enableTools"]');
+      if (toolsLabel && t['tools-label']) {
+        toolsLabel.textContent = t['tools-label'];
+      }
+
+      // 言語トグルボタンを更新
+      const langToggle = document.getElementById('langToggle');
+      if (langToggle) {
+        langToggle.textContent = currentLang === 'ja' ? '🌐 EN' : '🌐 JP';
+      }
+
+      // 音声認識の言語も更新
+      if (typeof recognition !== 'undefined' && recognition) {
+        recognition.lang = currentLang === 'ja' ? 'ja-JP' : 'en-US';
+      }
+
+      console.log(`UI language updated to: ${currentLang}`);
+    }
+
+    // 言語を切り替える関数
+    function toggleLanguage() {
+      currentLang = currentLang === 'ja' ? 'en' : 'ja';
+      localStorage.setItem('voiceui_language', currentLang);
+      updateUILanguage();
+    }
+
     // ブラウザ音声認識のフォールバック関数
     function startBrowserSpeechRecognition() {
       if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-        alert('このブラウザは音声認識をサポートしていません。テキスト入力をご利用ください。');
+        const t = translations[currentLang];
+        alert(t['browser-speech-not-supported']);
         return;
       }
 
@@ -203,7 +350,7 @@
       
       recognition.continuous = true;
       recognition.interimResults = true;
-      recognition.lang = 'ja-JP';
+      recognition.lang = currentLang === 'ja' ? 'ja-JP' : 'en-US';
 
       const startBtn = document.getElementById('startBtn');
       const stopBtn = document.getElementById('stopBtn');
@@ -213,7 +360,8 @@
         console.log('ブラウザ音声認識開始');
         startBtn.disabled = true;
         stopBtn.disabled = false;
-        startBtn.textContent = '🎤 認識中...';
+        const t = translations[currentLang];
+        startBtn.textContent = t['recognizing'];
       };
 
       recognition.onresult = function(event) {
@@ -234,14 +382,16 @@
         console.error('音声認識エラー:', event.error);
         startBtn.disabled = false;
         stopBtn.disabled = true;
-        startBtn.textContent = '🎤 音声認識開始';
+        const t = translations[currentLang];
+        startBtn.textContent = t['startBtn'];
       };
 
       recognition.onend = function() {
         console.log('音声認識終了');
         startBtn.disabled = false;
         stopBtn.disabled = true;
-        startBtn.textContent = '🎤 音声認識開始';
+        const t = translations[currentLang];
+        startBtn.textContent = t['startBtn'];
       };
 
       // 停止ボタンの設定
@@ -882,6 +1032,9 @@
         }
       });
       
+      // 言語切り替えボタンのイベントリスナー
+      document.getElementById('langToggle').addEventListener('click', toggleLanguage);
+      
       // 初期状態設定
       speechStatus.textContent = '音声合成を初期化しています...';
       
@@ -918,6 +1071,9 @@
         } else {
           speechStatus.textContent = '音声合成の初期化中...';
         }
+        
+        // 言語設定を適用
+        updateUILanguage();
         
         // モデル一覧と現在の設定を読み込み
         await loadModels();
