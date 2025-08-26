@@ -1,0 +1,7 @@
+flask
+flask-cors
+requests
+numpy
+sounddevice
+webrtcvad
+sherpa-onnx
