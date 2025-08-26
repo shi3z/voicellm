@@ -25,10 +25,80 @@
 
     <div id="singleAudioContent" class="tab-content loading">
       <div style="display: flex; gap: 1.5rem;">
-        <div style="flex: 1; display: flex; flex-direction: row; align-items: center; gap: 1rem;">
-          <button id="startBtn" disabled>Start</button>
-          <button id="stopBtn" disabled>Stop</button>
-          <button id="clearBtn">Clear</button>
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 1rem;">
+          <!-- 音声認識コントロール -->
+          <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+            <div style="flex: 1; display: flex; flex-direction: row; align-items: center; gap: 1rem;">
+              <button id="startBtn" disabled>Start</button>
+              <button id="stopBtn" disabled>Stop</button>
+              <button id="clearBtn">Clear</button>
+            </div>
+
+           <button id="clearConversationBtn" style="background: #dc3545; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">会話履歴クリア</button>
+          </div>
+          
+          <!-- テキスト入力 -->
+          <div style="display: flex; gap: 0.5rem; align-items: stretch;">
+            <input type="text" id="textInput" placeholder="メッセージを入力してEnterキーまたは送信ボタンを押してください..." 
+              style="flex: 1; padding: 0.75rem; border: 1px solid #ced4da; border-radius: 4px; font-size: 1rem;">
+            <button id="sendBtn" style="padding: 0.75rem 1rem; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">📤 送信</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 設定パネル (折りたたみ式) -->
+      <div style="margin: 1rem 0; background: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6;">
+        <div id="settingsHeader" style="padding: 1rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none;" onclick="toggleSettings()">
+          <h3 style="margin: 0; font-size: 1.1rem; color: #495057;">⚙️ LMStudio設定</h3>
+          <span id="settingsToggle" style="font-size: 1.2rem; color: #6c757d;">▶</span>
+        </div>
+        
+        <div id="settingsContent" style="padding: 0 1rem 1rem 1rem; display: none;">
+          <div style="display: grid; gap: 1rem;">
+            <!-- モデル選択 -->
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <label for="modelSelect" style="font-weight: bold; color: #495057; min-width: 80px;">モデル:</label>
+              <select id="modelSelect" style="flex: 1; padding: 0.5rem; border: 1px solid #ced4da; border-radius: 4px; background: white;">
+                <option value="">モデルを読み込み中...</option>
+              </select>
+              <button id="refreshModels" style="padding: 0.5rem 0.75rem; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">🔄</button>
+            </div>
+            
+            <!-- 最大推奨トークン数スライダー -->
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <label for="maxTokensSlider" style="font-weight: bold; color: #495057;">最大推奨トークン数:</label>
+                <span id="maxTokensValue" style="font-weight: bold; color: #007bff; min-width: 80px; text-align: right;">1000</span>
+              </div>
+              <input id="maxTokensSlider" type="range" min="100" max="200000" step="100" value="1000" 
+                style="width: 100%; height: 6px; border-radius: 3px; background: #ddd; outline: none; -webkit-appearance: none;" 
+                oninput="updateTokensDisplay(this.value)">
+              <div id="sliderLabels" style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #6c757d;">
+                <span>100</span>
+                <span>50K</span>
+                <span>100K</span>
+                <span>200K</span>
+              </div>
+            </div>
+            
+            <!-- システムプロンプト -->
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+              <label for="systemPrompt" style="font-weight: bold; color: #495057;">システムプロンプト:</label>
+              <textarea id="systemPrompt" 
+                style="padding: 0.5rem; border: 1px solid #ced4da; border-radius: 4px; resize: vertical; font-family: inherit; min-height: 80px;"
+                placeholder="AIの動作を指定するプロンプトを入力してください...">あなたは親しみやすい日本語のアシスタントです。簡潔で自然な日本語で応答してください。英語は一切使わないでください</textarea>
+            </div>
+            
+            <!-- ツール設定 -->
+            <div style="margin: 0.5rem 0; display: flex; align-items: center; gap: 0.5rem;">
+              <input type="checkbox" id="enableTools" style="transform: scale(1.2);">
+              <label for="enableTools" style="font-weight: bold; color: #495057;">ツール使用を有効化 (JavaScript/Python実行)</label>
+            </div>
+            
+            <button id="saveConfig" style="padding: 0.75rem 1rem; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">💾 設定保存</button>
+            
+            <div id="configStatus" style="padding: 0.5rem; font-size: 0.875rem; color: #6c757d;"></div>
+          </div>
         </div>
       </div>
 
@@ -91,6 +161,97 @@
       }
     }
     
+    // 設定の折りたたみを切り替える関数（グローバルスコープに配置）
+    function toggleSettings() {
+      const content = document.getElementById('settingsContent');
+      const toggle = document.getElementById('settingsToggle');
+      
+      if (content.style.display === 'none') {
+        content.style.display = 'block';
+        toggle.textContent = '▼';
+        localStorage.setItem('voiceui_settings_collapsed', 'false');
+      } else {
+        content.style.display = 'none';
+        toggle.textContent = '▶';
+        localStorage.setItem('voiceui_settings_collapsed', 'true');
+      }
+    }
+
+    // トークン数表示を更新する関数（グローバルスコープに配置）
+    function updateTokensDisplay(value) {
+      const display = document.getElementById('maxTokensValue');
+      if (!display) return;
+      
+      const numValue = parseInt(value);
+      
+      if (numValue >= 1000) {
+        display.textContent = (numValue / 1000).toFixed(0) + 'K';
+      } else {
+        display.textContent = numValue;
+      }
+    }
+
+    // ブラウザ音声認識のフォールバック関数
+    function startBrowserSpeechRecognition() {
+      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        alert('このブラウザは音声認識をサポートしていません。テキスト入力をご利用ください。');
+        return;
+      }
+
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'ja-JP';
+
+      const startBtn = document.getElementById('startBtn');
+      const stopBtn = document.getElementById('stopBtn');
+      const results = document.getElementById('results');
+
+      recognition.onstart = function() {
+        console.log('ブラウザ音声認識開始');
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+        startBtn.textContent = '🎤 認識中...';
+      };
+
+      recognition.onresult = function(event) {
+        let finalTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          }
+        }
+        
+        if (finalTranscript && results) {
+          results.value = finalTranscript;
+          console.log('音声認識結果:', finalTranscript);
+        }
+      };
+
+      recognition.onerror = function(event) {
+        console.error('音声認識エラー:', event.error);
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+        startBtn.textContent = '🎤 音声認識開始';
+      };
+
+      recognition.onend = function() {
+        console.log('音声認識終了');
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+        startBtn.textContent = '🎤 音声認識開始';
+      };
+
+      // 停止ボタンの設定
+      stopBtn.onclick = function() {
+        recognition.stop();
+      };
+
+      recognition.start();
+    }
+
     // 音声応答ボタンのイベントリスナー
     document.addEventListener('DOMContentLoaded', function() {
       const speakBtn = document.getElementById('speakBtn');
@@ -129,10 +290,36 @@
         }
       }
 
+      // 音声合成用にテキストをクリーンアップする関数
+      function cleanTextForSpeech(text) {
+        // マークダウンコードブロックを除去
+        text = text.replace(/```[\s\S]*?```/g, '');
+        
+        // インラインコードを除去
+        text = text.replace(/`[^`]*`/g, '');
+        
+        // コード関連の単語を除去
+        text = text.replace(/JavaScript|Python|HTML|CSS|Node\.js|コード|プログラム|スクリプト|実行結果|Output:|Error:/gi, '');
+        
+        // 連続する空白を単一スペースに
+        text = text.replace(/\s+/g, ' ').trim();
+        
+        return text;
+      }
+      
       // 英語部分を検出する関数
       function detectLanguageSegments(text) {
-        // 英語のフレーズを検出する正規表現（英単語+スペースを含む）
-        const englishRegex = /[a-zA-Z]+(?:[''][a-zA-Z]+)*(?:\s+[a-zA-Z]+(?:[''][a-zA-Z]+)*)*/g;
+        // 音声合成用にテキストをクリーンアップ
+        text = cleanTextForSpeech(text);
+        console.log('Cleaned text for speech:', text);
+        
+        // 空になった場合は処理しない
+        if (!text || text.trim().length === 0) {
+          return [];
+        }
+        
+        // 英語のフレーズを検出する正規表現（英単語+スペースを含む、クォートで囲まれた文字列も含む）
+        const englishRegex = /("[^"]*")|([a-zA-Z]+(?:[''][a-zA-Z]+)*(?:\s+[a-zA-Z]+(?:[''][a-zA-Z]+)*)*)/g;
         const segments = [];
         let lastIndex = 0;
         let match;
@@ -147,8 +334,11 @@
             }
           }
           
-          // 英語部分（スペースを含む）
-          segments.push({ text: match[0], lang: 'en-US', type: 'english' });
+          // マッチした内容を取得（クォート文字列またはアルファベット部分）
+          const matchedText = match[1] || match[2]; // match[1]がクォート文字列、match[2]が通常の英語
+          if (matchedText) {
+            segments.push({ text: matchedText, lang: 'en-US', type: 'english' });
+          }
           lastIndex = match.index + match[0].length;
         }
         
@@ -323,7 +513,11 @@
         var conversation = document.getElementById('conversation');
         try {
           speechStatus.textContent = 'AIに問い合わせ中...';
-          conversation.innerHTML += "<div style='margin: 10px 0; padding: 10px; background: #e3f2fd; border-radius: 5px;'><B>USER:</B> <span style='color: #1976d2;'>" + userInput + "</span></div>";
+          conversation.innerHTML += "<div style='margin: 10px 0; padding: 10px; background: #e3f2fd; border-radius: 5px; text-align: left;'><B>USER:</B> <span style='color: #1976d2;'>" + userInput + "</span></div>";
+          
+          const enableTools = document.getElementById('enableTools').checked;
+          
+          const systemPrompt = document.getElementById('systemPrompt').value;
           
           const response = await fetch('/api/chat', {
             method: 'POST',
@@ -331,7 +525,9 @@
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              message: userInput
+              message: userInput,
+              enable_tools: enableTools,
+              system_prompt: systemPrompt
             })
           });
 
@@ -349,7 +545,7 @@
             const htmlResponse = parseMarkdown(aiResponse);
             
             // APIレスポンスを表示
-            conversation.innerHTML += "<div style='margin: 10px 0; padding: 10px; background: #f1f8e9; border-radius: 5px;'><B>AI:</B> <div style='color: #388e3c; margin-top: 5px;'>" + htmlResponse + "</div></div>";
+            conversation.innerHTML += "<div style='margin: 10px 0; padding: 10px; background: #f1f8e9; border-radius: 5px; text-align: left;'><B>AI:</B> <div style='color: #388e3c; margin-top: 5px; text-align: left;'>" + htmlResponse + "</div></div>";
             
             // 音声合成では元のテキストを使用（HTMLタグなし）
             speakText(aiResponse, true);
@@ -403,16 +599,332 @@
         }
       }, 500);
       
+      // モデル一覧を取得する関数
+      async function loadModels() {
+        const modelSelect = document.getElementById('modelSelect');
+        const configStatus = document.getElementById('configStatus');
+        
+        try {
+          configStatus.textContent = 'モデル一覧を取得中...';
+          
+          const response = await fetch('/api/models');
+          const data = await response.json();
+          
+          console.log('Received models data:', data);
+          console.log('First model details:', data.models[0]);
+          
+          if (data.status === 'success') {
+            modelSelect.innerHTML = '';
+            
+            if (data.models.length === 0) {
+              modelSelect.innerHTML = '<option value="">モデルが見つかりません</option>';
+              configStatus.textContent = 'LMStudioでモデルをロードしてください';
+            } else {
+              data.models.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model.id;
+                const contextLength = model.max_context_length || 4096;
+                option.textContent = `${model.id} (context: ${contextLength.toLocaleString()})`;
+                option.setAttribute('data-max-context', contextLength);
+                modelSelect.appendChild(option);
+                console.log(`Added model: ${model.id}, context: ${contextLength}`);
+              });
+              configStatus.textContent = `${data.models.length}個のモデルが利用可能`;
+            }
+          } else {
+            throw new Error(data.error);
+          }
+        } catch (error) {
+          console.error('Failed to load models:', error);
+          modelSelect.innerHTML = '<option value="">エラー: モデル取得失敗</option>';
+          configStatus.textContent = 'LMStudioとの接続を確認してください';
+        }
+      }
+      
+      // 現在の設定を取得する関数
+      async function loadConfig() {
+        try {
+          const response = await fetch('/api/config');
+          const data = await response.json();
+          
+          if (data.status === 'success') {
+            const modelSelect = document.getElementById('modelSelect');
+            const maxTokensSlider = document.getElementById('maxTokensSlider');
+            
+            if (modelSelect) {
+              modelSelect.value = data.model_id;
+            }
+            if (maxTokensSlider) {
+              maxTokensSlider.value = data.max_tokens;
+              updateTokensDisplay(data.max_tokens);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to load config:', error);
+        }
+        
+        // ローカルストレージから設定を読み込み
+        loadLocalSettings();
+      }
+      
+      // ローカルストレージから設定を読み込む関数
+      function loadLocalSettings() {
+        try {
+          // 設定パネルの表示状態を復元（デフォルトは折りたたみ）
+          const collapsed = localStorage.getItem('voiceui_settings_collapsed');
+          if (collapsed === 'false') {
+            document.getElementById('settingsContent').style.display = 'block';
+            document.getElementById('settingsToggle').textContent = '▼';
+          } else {
+            // デフォルトは折りたたみ
+            document.getElementById('settingsContent').style.display = 'none';
+            document.getElementById('settingsToggle').textContent = '▶';
+          }
+          
+          const enableTools = localStorage.getItem('voiceui_enable_tools');
+          if (enableTools !== null) {
+            document.getElementById('enableTools').checked = enableTools === 'true';
+          }
+          
+          const modelId = localStorage.getItem('voiceui_model_id');
+          if (modelId && document.getElementById('modelSelect')) {
+            // モデルオプションが読み込まれた後に設定
+            setTimeout(() => {
+              const selectElement = document.getElementById('modelSelect');
+              if (selectElement && Array.from(selectElement.options).some(option => option.value === modelId)) {
+                selectElement.value = modelId;
+                // モデル変更時にmax_tokensを自動更新
+                updateMaxTokensFromModel();
+              }
+            }, 500);
+          }
+          
+          const maxTokens = localStorage.getItem('voiceui_max_tokens');
+          if (maxTokens) {
+            const slider = document.getElementById('maxTokensSlider');
+            slider.value = maxTokens;
+            updateTokensDisplay(maxTokens);
+          }
+          
+          const systemPrompt = localStorage.getItem('voiceui_system_prompt');
+          if (systemPrompt) {
+            document.getElementById('systemPrompt').value = systemPrompt;
+          }
+          
+          console.log('Loaded settings from localStorage');
+        } catch (error) {
+          console.error('Failed to load settings from localStorage:', error);
+        }
+      }
+      
+      // ローカルストレージに設定を保存する関数
+      function saveLocalSettings() {
+        try {
+          const enableTools = document.getElementById('enableTools').checked;
+          const modelId = document.getElementById('modelSelect').value;
+          const maxTokens = document.getElementById('maxTokensSlider').value;
+          const systemPrompt = document.getElementById('systemPrompt').value;
+          
+          localStorage.setItem('voiceui_enable_tools', enableTools);
+          localStorage.setItem('voiceui_model_id', modelId);
+          localStorage.setItem('voiceui_max_tokens', maxTokens);
+          localStorage.setItem('voiceui_system_prompt', systemPrompt);
+          
+          console.log('Saved settings to localStorage');
+        } catch (error) {
+          console.error('Failed to save settings to localStorage:', error);
+        }
+      }
+      
+      // 設定を保存する関数
+      async function saveConfig() {
+        const modelSelect = document.getElementById('modelSelect');
+        const maxTokensSlider = document.getElementById('maxTokensSlider');
+        const enableTools = document.getElementById('enableTools');
+        const configStatus = document.getElementById('configStatus');
+        
+        try {
+          configStatus.textContent = '設定を保存中...';
+          
+          const response = await fetch('/api/config', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model_id: modelSelect.value,
+              max_tokens: parseInt(maxTokensSlider.value)
+            })
+          });
+          
+          const data = await response.json();
+          
+          if (data.status === 'success') {
+            // ローカルストレージにも保存
+            saveLocalSettings();
+            
+            const toolsStatus = enableTools.checked ? 'ツール有効' : 'ツール無効';
+            configStatus.textContent = `設定保存完了 - モデル: ${data.model_id}, 推奨トークン数: ${data.max_tokens}, ${toolsStatus}`;
+            configStatus.style.color = '#28a745';
+          } else {
+            throw new Error(data.error);
+          }
+        } catch (error) {
+          console.error('Failed to save config:', error);
+          configStatus.textContent = '設定の保存に失敗しました';
+        }
+      }
+      
+      // 会話履歴をクリアする関数
+      async function clearConversation() {
+        const configStatus = document.getElementById('configStatus');
+        const conversation = document.getElementById('conversation');
+        
+        try {
+          configStatus.textContent = '会話履歴をクリア中...';
+          
+          const response = await fetch('/api/conversation', {
+            method: 'DELETE'
+          });
+          
+          const data = await response.json();
+          
+          if (data.status === 'success') {
+            conversation.innerHTML = '';
+            configStatus.textContent = '会話履歴をクリアしました';
+          } else {
+            throw new Error(data.error);
+          }
+        } catch (error) {
+          console.error('Failed to clear conversation:', error);
+          configStatus.textContent = '会話履歴のクリアに失敗しました';
+        }
+      }
+      
+      // スライダーのラベルを更新する関数
+      function updateSliderLabels(maxValue) {
+        const labels = document.getElementById('sliderLabels');
+        const quarter = Math.floor(maxValue / 4);
+        const half = Math.floor(maxValue / 2);
+        const threeQuarter = Math.floor(maxValue * 3 / 4);
+        
+        function formatValue(value) {
+          if (value >= 1000) {
+            return Math.floor(value / 1000) + 'K';
+          }
+          return value.toString();
+        }
+        
+        labels.innerHTML = `
+          <span>100</span>
+          <span>${formatValue(quarter)}</span>
+          <span>${formatValue(half)}</span>
+          <span>${formatValue(threeQuarter)}</span>
+          <span>${formatValue(maxValue)}</span>
+        `;
+      }
+      
+      // モデル選択時にmax_tokensを自動設定
+      function updateMaxTokensFromModel() {
+        const modelSelect = document.getElementById('modelSelect');
+        const maxTokensSlider = document.getElementById('maxTokensSlider');
+        const configStatus = document.getElementById('configStatus');
+        
+        const selectedOption = modelSelect.options[modelSelect.selectedIndex];
+        if (selectedOption && selectedOption.getAttribute('data-max-context')) {
+          const maxContext = parseInt(selectedOption.getAttribute('data-max-context'));
+          
+          // 推奨トークン数をmax_context_lengthの75%に設定（余裕を持たせる）
+          const recommendedMaxTokens = Math.floor(maxContext * 0.75);
+          
+          // スライダーの最大値をモデルのコンテキスト長に設定
+          const sliderMax = Math.min(maxContext, 500000); // 最大500Kまで
+          maxTokensSlider.max = sliderMax;
+          maxTokensSlider.value = recommendedMaxTokens;
+          updateTokensDisplay(recommendedMaxTokens);
+          updateSliderLabels(sliderMax);
+          
+          configStatus.textContent = `モデルのコンテキスト長: ${maxContext.toLocaleString()}, 推奨トークン数: ${recommendedMaxTokens.toLocaleString()}`;
+        } else {
+          // デフォルト設定（モデル情報がない場合）
+          maxTokensSlider.max = 32768;
+          updateSliderLabels(32768);
+        }
+      }
+      
+      // テキスト送信機能
+      async function sendTextMessage() {
+        const textInput = document.getElementById('textInput');
+        const message = textInput.value.trim();
+        
+        if (!message) {
+          return;
+        }
+        
+        // 入力フィールドをクリア
+        textInput.value = '';
+        
+        // 音声応答を呼び出し
+        await callPythonAPI(message);
+      }
+      
+      // イベントリスナーの設定
+      document.getElementById('refreshModels').addEventListener('click', loadModels);
+      document.getElementById('saveConfig').addEventListener('click', saveConfig);
+      document.getElementById('clearConversationBtn').addEventListener('click', clearConversation);
+      document.getElementById('modelSelect').addEventListener('change', updateMaxTokensFromModel);
+      
+      // テキスト入力のイベントリスナー
+      document.getElementById('sendBtn').addEventListener('click', sendTextMessage);
+      document.getElementById('textInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          sendTextMessage();
+        }
+      });
+      
       // 初期状態設定
       speechStatus.textContent = '音声合成を初期化しています...';
       
       // 初期化完了後の処理
-      setTimeout(() => {
+      setTimeout(async () => {
+        // Loading状態を手動で解除
+        const statusElement = document.getElementById('status');
+        if (statusElement) {
+          statusElement.style.display = 'none';
+        }
+        document.querySelectorAll('.tab-content').forEach((tabContentElement) => {
+          tabContentElement.classList.remove('loading');
+        });
+        
+        // 音声認識ボタンを手動で有効化
+        const startBtn = document.getElementById('startBtn');
+        if (startBtn) {
+          startBtn.disabled = false;
+          
+          // app-vad-asr.jsのイベントハンドラーが設定されていない場合のフォールバック
+          // 少し遅延してからチェック
+          setTimeout(() => {
+            if (startBtn.onclick === null) {
+              console.log('WebAssembly音声認識が利用できません。ブラウザ音声認識を使用します。');
+              startBtn.onclick = function() {
+                startBrowserSpeechRecognition();
+              };
+            }
+          }, 2000);
+        }
+        
         if (speechSynth && speechSynth.getVoices().length > 0) {
           speechStatus.textContent = '音声認識を開始してください';
         } else {
           speechStatus.textContent = '音声合成の初期化中...';
         }
+        
+        // モデル一覧と現在の設定を読み込み
+        await loadModels();
+        await loadConfig();
+        
+        // 初期モデル選択時にmax_tokensを自動設定
+        updateMaxTokensFromModel();
       }, 1000);
     });
   </script>
